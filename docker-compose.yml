@@ -1,0 +1,55 @@
+version: '3'
+
+services:
+    nginx:
+        image: nginx:latest
+        volumes:
+            - ./Nginx/conf.d/:/etc/nginx/conf.d
+            - ./Nginx/www/:/var/www/
+            - ./Nginx/log:/var/log/nginx/
+        ports:
+            - 8000:80
+        container_name: banks-nginx
+        depends_on:
+          - app
+        networks:
+            - inner
+
+    app:
+        build:
+            context: .
+            dockerfile: ./PHP/Dockerfile
+#        extra_hosts:
+#            -   host.docker.internal:host-geteway
+        volumes:
+          - ./Nginx/www/:/var/www/
+        depends_on:
+            - db
+        environment:
+#             XDEBUG_CONFIG: "remote_host=192.168.221.4 remote_enabled=1"
+            PHP_IDE_CONFIG: "serverName=banks-app"
+        container_name: banks-app
+        networks:
+            - inner
+    db:
+        image: mysql:8.0
+        restart: always
+        volumes:
+            - ./DB/db:/var/lib/mysql
+        environment:
+            MYSQL_ROOT_PASSWORD: root
+            MYSQL_DATABASE: banks_docker
+        ports:
+            - 3000:3306
+        command: mysqld --character-set-server=utf8 --collation-server=utf8_general_ci
+        container_name: banks-db
+        networks:
+            - inner
+
+networks:
+    inner:
+        driver: bridge
+        ipam:
+            driver: default
+            config:
+                - subnet: 192.168.100.0/24
